@@ -6,7 +6,6 @@
  * - version: 4.4 (2012-10-10)
  * - author: Richard A Delorme
  * - email: edax-reversi@orange.fr
- * - web site: http://abulmo.perso.neuf.fr/edax/4.3/index.htm
  *
  *
  * @section lic Licence
