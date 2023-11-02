@@ -383,7 +383,8 @@ void movelist_evaluate(MoveList *movelist, Search *search, const HashData *hash_
 	Move *move;
 	int	sort_depth, min_depth, sort_alpha, score, empties, parity_weight;
 	HashData dummy;
-	Search_Backup backup;
+	Eval eval0;
+	Board board0;
 
 	// https://eukaryote.hateblo.jp/entry/2020/05/16/082757
 	empties = search->eval.n_empties;
@@ -401,8 +402,8 @@ void movelist_evaluate(MoveList *movelist, Search *search, const HashData *hash_
 		if (sort_depth < 0) sort_depth = 0;
 		else if (sort_depth > 6) sort_depth = 6;
 
-		backup.board = search->board;
-		backup.eval = search->eval;
+		board0 = search->board;
+		eval0 = search->eval;
 		sort_alpha = MAX(SCORE_MIN, alpha - SORT_ALPHA_DELTA);
 
 		move = movelist->move[0].next;
@@ -424,16 +425,16 @@ void movelist_evaluate(MoveList *movelist, Search *search, const HashData *hash_
 				score += (36 - bit_weighted_count(MM.ull[1])) * w_potential_mobility; // potential mobility
 				score += (36 - bit_weighted_count(MM.ull[0])) * w_mobility; // real mobility
 #elif defined(hasSSE2) && !defined(POPCOUNT)
-				__m128i MM = bit_weighted_count_sse(get_moves(search->board.player, search->board.opponent), get_potential_moves(search->board.player, search->board.opponent));
+				__m128i MM = bit_weighted_count_sse(board_get_moves(&search->board), get_potential_moves(search->board.player, search->board.opponent));
 				score += (36 - _mm_extract_epi16(MM, 4)) * w_potential_mobility; // potential mobility
 				score += (36 - _mm_cvtsi128_si32(MM)) * w_mobility; // real mobility
 #elif defined(hasNeon)
-				uint64x2_t MM = bit_weighted_count_neon(get_moves(search->board.player, search->board.opponent), get_potential_moves(search->board.player, search->board.opponent));
+				uint64x2_t MM = bit_weighted_count_neon(board_get_moves(&search->board), get_potential_moves(search->board.player, search->board.opponent));
 				score += (36 - vgetq_lane_u32(vreinterpretq_u32_u64(MM), 2)) * w_potential_mobility; // potential mobility
 				score += (36 - vgetq_lane_u32(vreinterpretq_u32_u64(MM), 0)) * w_mobility; // real mobility
 #else
 				score += (36 - get_potential_mobility(search->board.player, search->board.opponent)) * w_potential_mobility; // potential mobility
-				score += (36 - bit_weighted_count(get_moves(search->board.player, search->board.opponent))) * w_mobility; // real mobility
+				score += (36 - bit_weighted_count(board_get_moves(&search->board))) * w_mobility; // real mobility
 #endif
 				score += get_edge_stability(search->board.opponent, search->board.player) * w_edge_stability; // edge stability
 				switch (sort_depth) {
@@ -455,7 +456,8 @@ void movelist_evaluate(MoveList *movelist, Search *search, const HashData *hash_
 					break;
 	}
 
-				search_restore_midgame(search, move->x, &backup);
+				search_restore_midgame(search, move->x, &eval0);
+				search->board = board0;
 			}
 			move->score = score;
 		} while ((move = move->next));
@@ -496,26 +498,29 @@ Move* movelist_sort_bestmove(MoveList *movelist, const int move)
  */
 void movelist_sort_cost(MoveList *movelist, const HashData *hash_data)
 {
-	Move *iter, *m;
-	Move *hashmove[2];
-	int	i;
+	Move *iter, *prev, *m, *hashmove0, *hashmove1;
 
-	hashmove[0] = hashmove[1] = NULL;
-	for (iter = &movelist->move[0]; (m = iter->next); iter = m) {
+	hashmove0 = hashmove1 = NULL;
+	for (prev = iter = &movelist->move[0]; (m = prev->next); prev = m) {
 		if (m->x == hash_data->move[0])
-			hashmove[0] = iter;
+			hashmove0 = prev;
 		if (m->x == hash_data->move[1])
-			hashmove[1] = iter;
+			hashmove1 = prev;
 	}
-	iter = &movelist->move[0];
-	for (i = 0; i <= 1; ++i)
-		if (hashmove[i]) {
-			m = hashmove[i]->next;
-			hashmove[i]->next = m->next;
-			m->next = iter->next;
-			iter->next = m;
-			iter = iter->next;
-		}
+	if (hashmove0) {
+		m = hashmove0->next;
+		hashmove0->next = m->next;
+		m->next = iter->next;
+		if (hashmove1 == iter)
+			hashmove1 = m;
+		iter = iter->next = m;
+	}
+	if (hashmove1) {
+		m = hashmove1->next;
+		hashmove1->next = m->next;
+		m->next = iter->next;
+		iter = iter->next = m;
+	}
 	while ((iter = move_next_most_expensive(iter)))
 		;
 }
