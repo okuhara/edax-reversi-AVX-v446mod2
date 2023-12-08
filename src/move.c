@@ -185,8 +185,8 @@ static void move_evaluate(Move *move, Search *search, const HashData *hash_data,
 	Eval Ev0;
 
 	if (move_wipeout(move, &search->board)) move->score = (1 << 30);
-	else if (move->x == hash_data->move[0] && hash_data->depth > sort_depth - 3) move->score = (1 << 29);
-	else if (move->x == hash_data->move[1] && hash_data->depth > sort_depth - 3) move->score = (1 << 28);
+	else if (move->x == hash_data->move[0] && hash_data->wl.c.depth > sort_depth - 3) move->score = (1 << 29);
+	else if (move->x == hash_data->move[1] && hash_data->wl.c.depth > sort_depth - 3) move->score = (1 << 28);
 	else {
 
 		move->score = SQUARE_VALUE[move->x]; // square type
