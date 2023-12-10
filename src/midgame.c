@@ -168,7 +168,7 @@ int search_eval_1(Search *search, const int alpha, int beta, bool pass1)
 		if (bestscore > 0) bestscore += 64;	else bestscore -= 64;
 		bestscore /= 128;
 
-			if (bestscore < SCORE_MIN + 1) bestscore = SCORE_MIN + 1;
+		if (bestscore < SCORE_MIN + 1) bestscore = SCORE_MIN + 1;
 		if (bestscore > SCORE_MAX - 1) bestscore = SCORE_MAX - 1;
 
 	} else {
@@ -583,10 +583,10 @@ int NWS_midgame(Search *search, const int alpha, int depth, Node *parent)
 		return search_solve_0(search);
 	else if (depth < search->eval.n_empties) {
 		if (depth <= 3)
-		return NWS_shallow(search, alpha, depth, &search->hash_table);
+			return NWS_shallow(search, alpha, depth, &search->hash_table);
 	} else {
 		if (depth < DEPTH_MIDGAME_TO_ENDGAME)
-		return NWS_endgame(search, alpha);
+			return NWS_endgame(search, alpha);
 	}
 
 	SEARCH_STATS(++statistics.n_NWS_midgame);

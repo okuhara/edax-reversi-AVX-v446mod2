@@ -452,7 +452,7 @@ void movelist_evaluate(MoveList *movelist, Search *search, const HashData *hash_
 					score += ((SCORE_MAX - PVS_shallow(search, SCORE_MIN, -sort_alpha, sort_depth))) * w_eval; // > 3 level bonus
 					// search->selectivity = org_selectivity;
 					break;
-	}
+				}
 
 				search_restore_midgame(search, move->x, &eval0);
 				search->board = board0;

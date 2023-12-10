@@ -351,7 +351,7 @@ int PVS_root(Search *search, const int alpha, const int beta, const int depth)
 	node.pv_node = true;
 	search->node_type[0] = PV_NODE;
 	search->time.can_update = false;
-	
+
 	// special cases: pass or game over
 	if (movelist_is_empty(movelist)) {
 		move = movelist->move->next = movelist->move + 1;
