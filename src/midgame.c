@@ -437,8 +437,7 @@ static int NWS_shallow(Search *search, const int alpha, int depth, HashTable *ha
 	hash_data.beta = alpha + 1;
 	hash_data.score = bestscore;
 	hash_store(hash_table, &search->board, hash_code, &hash_data);
- 	assert(SCORE_MIN <= bestscore && bestscore <= SCORE_MAX);
-
+	assert(SCORE_MIN <= bestscore && bestscore <= SCORE_MAX);
 	return bestscore;
 }
 

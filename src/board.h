@@ -76,7 +76,7 @@ int get_corner_stability(const unsigned long long);
 	unsigned long long get_moves_sse(const unsigned long long, const unsigned long long);
 	int get_stability_mmx(unsigned long long, unsigned long long);
 
-#elif defined(ANDROID) && !defined(hasNeon) && !defined(hasSSE2)
+#elif defined(ANDROID) && !defined(__ARM_NEON) && !defined(hasSSE2)
 	void init_neon (void);
 	unsigned long long get_moves_sse(unsigned long long, unsigned long long);
 	int get_stability_sse(const unsigned long long P, const unsigned long long O);
