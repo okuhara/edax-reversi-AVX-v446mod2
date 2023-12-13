@@ -105,6 +105,9 @@ ifeq ($(COMP),gcc)
 		ifeq ($(ARCH),x86)
 			CFLAGS += -msse2 -DhasSSE2
 		endif
+		ifeq ($(ARCH),arm)
+			CFLAGS += -march=armv8.3-a
+		endif
 	endif
 	ifeq ($(OS),android)
 		CFLAGS += -DANDROID=1
@@ -275,7 +278,7 @@ ifeq ($(COMP),clang)
 	endif
 
 	ifeq ($(ARCH),x64-modern)
-		CFLAGS += -m64 -march=core-avx2 -DUSE_GAS_X64 -DPOPCOUNT
+		CFLAGS += -m64 -march=core-avx2 -DUSE_GAS_X64 -DPOPCOUNT -DLASTFLIP_HIGHCUT
 	endif
 	ifeq ($(ARCH),x64-avx512)
 		CFLAGS += -m64 -march=skylake-avx512 -DUSE_GAS_X64 -DPOPCOUNT
@@ -291,6 +294,9 @@ ifeq ($(COMP),clang)
 		CFLAGS += -mmacosx-version-min=10.4 -mdynamic-no-pic
 		ifeq ($(ARCH),x86)
 			CFLAGS += -msse2 -DhasSSE2
+		endif
+		ifeq ($(ARCH),arm)
+			CFLAGS += -march=armv8.3-a
 		endif
 	endif
 endif
@@ -407,7 +413,7 @@ android:
 macuniversal:
 	$(MAKE) build ARCH=x86 OS=osx COMP=clang
 	$(MAKE) build ARCH=x64 OS=osx COMP=clang
-	lipo -create -arch i686 ../bin/mEdax-x86 -arch x86_64 ../bin/mEdax-x64 -output ../bin/mEdax
+	lipo -create -arch i686 ../bin/mEdax-x86 -arch x86_64 ../bin/mEdax-x64 -arch arm64 ../bin/mEdax-arm -output ../bin/mEdax
 	rm -f ../bin/mEdax-x86 ../bin/mEdax-x64
 
 clean:
