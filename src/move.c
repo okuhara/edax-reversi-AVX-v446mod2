@@ -313,13 +313,12 @@ void movelist_evaluate_fast(MoveList *movelist, Search *search, const HashData *
 		else if (move->x == hash_data->move[1]) score = (1 << 28);
 		else {
 #ifdef __AVX2__
-			V2DI MM;
-			__m128i PO = _mm_xor_si128(_mm_loadu_si128((__m128i *) &search->board),
+			__m128i PO = _mm_xor_si128(*(__m128i *) &search->board,
 				_mm_or_si128(_mm_broadcastq_epi64(*(__m128i *) &move->flipped), _mm_loadl_epi64((__m128i *) &X_TO_BIT[move->x])));
 			score  = get_corner_stability(_mm_cvtsi128_si64(PO)) * w_corner_stability; // corner stability
-			MM.v2 = get_moves_and_potential(_mm256_broadcastq_epi64(_mm_unpackhi_epi64(PO, PO)), _mm256_broadcastq_epi64(PO));
-			score += (36 - bit_weighted_count(MM.ull[1])) * w_potential_mobility; // potential mobility
-			score += (36 - bit_weighted_count(MM.ull[0])) * w_mobility; // real mobility
+			__m128i MM = get_moves_and_potential(_mm256_broadcastq_epi64(_mm_unpackhi_epi64(PO, PO)), _mm256_broadcastq_epi64(PO));
+			score += (36 - bit_weighted_count(_mm_extract_epi64(MM, 1))) * w_potential_mobility; // potential mobility
+			score += (36 - bit_weighted_count(_mm_cvtsi128_si64(MM))) * w_mobility; // real mobility
 
 #else
 			unsigned long long O = search->board.player ^ (move->flipped | x_to_bit(move->x));
@@ -419,10 +418,9 @@ void movelist_evaluate(MoveList *movelist, Search *search, const HashData *hash_
 
 				SEARCH_UPDATE_INTERNAL_NODES(search->n_nodes);
 #ifdef __AVX2__
-				V2DI MM;
-				MM.v2 =  get_moves_and_potential(_mm256_broadcastq_epi64(*(__m128i *) &search->board.player), _mm256_broadcastq_epi64(*(__m128i *) &search->board.opponent));
-				score += (36 - bit_weighted_count(MM.ull[1])) * w_potential_mobility; // potential mobility
-				score += (36 - bit_weighted_count(moves = MM.ull[0])) * w_mobility; // real mobility
+				__m128i MM =  get_moves_and_potential(_mm256_broadcastq_epi64(*(__m128i *) &search->board.player), _mm256_broadcastq_epi64(*(__m128i *) &search->board.opponent));
+				score += (36 - bit_weighted_count(_mm_extract_epi64(MM, 1))) * w_potential_mobility; // potential mobility
+				score += (36 - bit_weighted_count(moves = _mm_cvtsi128_si64(MM))) * w_mobility; // real mobility
 #else
 				moves = board_get_moves(&search->board);
   #if defined(hasSSE2) && !defined(POPCOUNT)
@@ -450,10 +448,10 @@ void movelist_evaluate(MoveList *movelist, Search *search, const HashData *hash_
 					score += ((SCORE_MAX - search_eval_2(search, SCORE_MIN, -sort_alpha, moves)) >> 1) * w_eval;	// 3 level score bonus
 					break;
 				default:	// 3 to 6
-					if (hash_get_from_board(&search->hash_table, &search->board, &dummy)) score += w_hash;	// bonus if the position leads to a position stored in the hash-table
+					if (hash_get_from_board(&search->hash_table, &search->board, &dummy)) score += w_hash; // bonus if the position leads to a position stored in the hash-table
 					// org_selectivity = search->selectivity;
-					// search->selectivity = NO_SELECTIVITY;	// No probcut in PVS_shallow
-					score += ((SCORE_MAX - PVS_shallow(search, SCORE_MIN, -sort_alpha, sort_depth))) * w_eval;	// > 3 level bonus
+					// search->selectivity = NO_SELECTIVITY;
+					score += ((SCORE_MAX - PVS_shallow(search, SCORE_MIN, -sort_alpha, sort_depth))) * w_eval; // > 3 level bonus
 					// search->selectivity = org_selectivity;
 					break;
 				}
